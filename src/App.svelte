@@ -1,15 +1,12 @@
 <script>
-  const name = 'Svelte'
-  const src = 'src/assets/svelte.svg'
-  const string = 'Some <strong>string</strong> with html.'
+    import Counter from './lib/Counter.svelte'
+    const props = {
+        maxCount: 10,
+        initialCount: 5
+    }
 </script>
 
-<img alt="{name} logo" {src} />
-<h1>Hello {name.toUpperCase()}!</h1>
-<p>{@html string}</p>
+<Counter {...props} />
 
 <style>
-  h1 {
-    color: red;
-  }
 </style>
