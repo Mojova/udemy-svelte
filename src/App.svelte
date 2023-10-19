@@ -1,19 +1,145 @@
 <script>
-  import Button from "./lib/Button.svelte";
-  import FaAngellist from "svelte-icons/fa/FaAngellist.svelte";
-  import FaAllergies from "svelte-icons/fa/FaAllergies.svelte";
+  import TodoList from "./lib/TodoList.svelte";
+  import { v4 as uuid } from "uuid";
+  import { onMount, tick } from "svelte";
+
+  let todoList;
+  let showList = true;
+  let isLoading = true;
+  let isAdding = false;
+  let disabledItems = [];
+
+  let todos = null;
+  let error = null;
+
+  onMount(loadTodos);
+
+  async function loadTodos() {
+    isLoading = true;
+    await fetch("https://jsonplaceholder.typicode.com/todos?_limit=10").then(
+      async (response) => {
+        if (response.ok) {
+          todos = await response.json();
+        } else {
+          error = "An error has occured.";
+        }
+      },
+    );
+    isLoading = false;
+  }
+
+  async function handleAddTodo(event) {
+    isAdding = true;
+    fetch("https://jsonplaceholder.typicode.com/todos?_limit=10", {
+      method: "POST",
+      body: JSON.stringify({
+        title: event.detail.title,
+        completed: false,
+      }),
+      headers: {
+        "Content-Type": "application/json; charset=UTF-8",
+      },
+    }).then(async (response) => {
+      if (response.ok) {
+        const todo = await response.json();
+        todos = [...todos, { ...todo, id: uuid() }];
+        todoList.clearInput();
+      } else {
+        alert("An error has occured.");
+      }
+      isAdding = false;
+      await tick();
+      todoList.focusInput();
+    });
+    event.preventDefault();
+  }
+
+  function handleRemoveTodo(event) {
+    const { id } = event.detail;
+    if (disabledItems.includes(id)) {
+      return;
+    }
+    disabledItems = [...disabledItems, id];
+    fetch(`https://jsonplaceholder.typicode.com/todos/${id}`, {
+      method: "DELETE",
+    }).then((response) => {
+      if (response.ok) {
+        todos = todos.filter((t) => t.id !== id);
+      } else {
+        alert("An error has occured.");
+      }
+      disabledItems = disabledItems.filter((i) => i !== id);
+    });
+  }
+
+  function handleToggleTodo(event) {
+    const { id, value } = event.detail;
+    if (disabledItems.includes(id)) {
+      return;
+    }
+    disabledItems = [...disabledItems, id];
+    fetch(`https://jsonplaceholder.typicode.com/todos/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        completed: value,
+      }),
+      headers: {
+        "Content-Type": "application/json; charset=UTF-8",
+      },
+    }).then((response) => {
+      if (response.ok) {
+        todos = todos.map((t) => {
+          if (t.id !== id) {
+            return t;
+          }
+          return { ...t, completed: !t.completed };
+        });
+      } else {
+        alert("An error has occured.");
+      }
+      disabledItems = disabledItems.filter((i) => i !== id);
+    });
+  }
 </script>
 
-<Button disabled on:click={(event) => alert(true)} let:isLeftHovered size="small" shadow bgColor="blue" textColor="white">
-  <div style:width="20px" slot="left" let:isLeftHovered>
-    {#if isLeftHovered}
-      <FaAngellist />
-    {:else}
-      <FaAllergies />
-    {/if}
+<label>
+  <input type="checkbox" bind:checked={showList} />
+  Show/Hide list
+</label>
+{#if showList}
+  <div style:max-width="300px">
+    <TodoList
+      {todos}
+      {error}
+      {isLoading}
+      disableAdding={isAdding}
+      {disabledItems}
+      bind:this={todoList}
+      on:addTodo={handleAddTodo}
+      on:removetodo={handleRemoveTodo}
+      on:toggletodo={handleToggleTodo}
+      >
+    <!--  <div slot="todo-item" let:todo let:handleCheck>
+        {@const { id, completed, title } = todo}
+        <label>
+          <input
+            type="checkbox"
+            checked={completed}
+            disabled={disabledItems.includes(id)}
+            on:input={(event) => {
+              event.currentTarget.checked = completed;
+              handleCheck(id, !completed);
+            }}
+          />
+          {title}
+        </label>{title}
+      </div>-->
+      <svelte:fragment slot="title">The title is</svelte:fragment>
+    </TodoList>
   </div>
-  Button Text {isLeftHovered}
-</Button>
+{/if}
+
+<button on:click={todoList.focusInput}>Focus Input</button>
 
 <style>
 </style>
