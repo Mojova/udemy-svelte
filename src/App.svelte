@@ -2,6 +2,9 @@
   import TodoList from "./lib/TodoList.svelte";
   import { v4 as uuid } from "uuid";
   import { onMount, tick } from "svelte";
+  import { fly } from "svelte/transition";
+  import spin from './lib/transitions/spin';
+  import fade from './lib/transitions/fade';
 
   let todoList;
   let showList = true;
@@ -42,7 +45,7 @@
     }).then(async (response) => {
       if (response.ok) {
         const todo = await response.json();
-        todos = [...todos, { ...todo, id: uuid() }];
+        todos = [{ ...todo, id: uuid() }, ...todos];
         todoList.clearInput();
       } else {
         alert("An error has occured.");
@@ -107,7 +110,7 @@
   Show/Hide list
 </label>
 {#if showList}
-  <div style:max-width="300px">
+  <div transition:fade style:max-width="800px">
     <TodoList
       {todos}
       {error}
@@ -115,11 +118,12 @@
       disableAdding={isAdding}
       {disabledItems}
       bind:this={todoList}
+      scrollOnAdd="top"
       on:addTodo={handleAddTodo}
       on:removetodo={handleRemoveTodo}
       on:toggletodo={handleToggleTodo}
-      >
-    <!--  <div slot="todo-item" let:todo let:handleCheck>
+    >
+      <!--  <div slot="todo-item" let:todo let:handleCheck>
         {@const { id, completed, title } = todo}
         <label>
           <input
@@ -134,9 +138,16 @@
           {title}
         </label>{title}
       </div>-->
-      <svelte:fragment slot="title">The title is</svelte:fragment>
     </TodoList>
   </div>
+  {#if todos}
+    <p>
+      Number of todos: {#key todos.length}<span
+          style:display="inline-block"
+          in:fly|local={{ y: -10 }}>{todos.length}</span
+        >{/key}
+    </p>
+  {/if}
 {/if}
 
 <button on:click={todoList.focusInput}>Focus Input</button>
