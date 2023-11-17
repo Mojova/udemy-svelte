@@ -1,9 +1,23 @@
+<script context="module">
+  let totalButtons = 0;
+
+  export function getTotalButtons() {
+    return totalButtons;
+  }
+</script>
+
 <script>
+  import {onDestroy} from "svelte";
+
   export let size = "small";
   export let shadow = false;
   export let bgColor = undefined;
   export let textColor = undefined;
   let isLeftHovered;
+
+  totalButtons++;
+
+  onDestroy(() => totalButtons--)
 </script>
 
 <button
